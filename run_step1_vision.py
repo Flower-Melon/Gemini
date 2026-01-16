@@ -5,11 +5,18 @@ from google.genai import types
 
 from tools.utils import setup_client
 from tools.visualization import visualize_segmentation_on_image
-from data.prompts import task_prompt_json2
+from data.prompts import task_prompt_json
 
 # 配置路径
-IMAGE_DIR = "temp"
-OUTPUT_JSON = "all_zones_data.json"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+IMAGE_DIR = os.path.join(BASE_DIR, "temp")      # 图片输入文件夹
+OUTPUT_DIR = os.path.join(BASE_DIR, "output")    # 结果输出文件夹
+
+# 确保 output 文件夹存在
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+# 定义输出文件路径
+OUTPUT_JSON = os.path.join(OUTPUT_DIR, "zones_data.json")
 
 class VisionAnalyzer:
     def __init__(self, client):
@@ -34,7 +41,7 @@ class VisionAnalyzer:
             # 调用大模型
             response = self.client.models.generate_content(
                 model="gemini-3-pro-preview",
-                contents=[my_file, task_prompt_json2],
+                contents=[my_file, task_prompt_json],
                 config=self.config
             )
             
@@ -99,7 +106,6 @@ def main():
         json.dump(results, f, ensure_ascii=False, indent=4)
     
     print(f"\n💾 [Step 1 完成] 区域数据已保存至: {OUTPUT_JSON}")
-    print("您可以随时运行 Step 2 脚本来读取此文件。")
 
 if __name__ == "__main__":
     main()

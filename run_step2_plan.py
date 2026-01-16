@@ -1,13 +1,17 @@
-import json
 import os
+import json
 from google.genai import types
 
 from tools.utils import setup_client
 from tools.generate import create_command_prompt
 
 # 配置路径
-INPUT_JSON = "all_zones_data.json"
-OUTPUT_CODE_JSON = "all_missions_code.json"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+OUTPUT_DIR = os.path.join(BASE_DIR, "output")
+
+# 定义输入和输出路径
+INPUT_JSON = os.path.join(OUTPUT_DIR, "zones_data.json")
+OUTPUT_CODE_JSON = os.path.join(OUTPUT_DIR, "missions_plan.json")
 
 class MissionPlanner:
     def __init__(self, client):
