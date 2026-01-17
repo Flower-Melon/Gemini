@@ -1,3 +1,8 @@
+"""
+图像上可视化区域划分结果
+输入：包含区域划分数据的字符串，图像路径
+输出：保存带有区域划分可视化结果的图像文件
+"""
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import numpy as np

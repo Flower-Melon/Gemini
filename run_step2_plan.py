@@ -7,7 +7,7 @@ from tools.generate import create_command_prompt
 
 # 配置路径
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-OUTPUT_DIR = os.path.join(BASE_DIR, "output")
+OUTPUT_DIR = os.path.join(BASE_DIR, "out")
 
 # 定义输入和输出路径
 INPUT_JSON = os.path.join(OUTPUT_DIR, "zones_data.json")

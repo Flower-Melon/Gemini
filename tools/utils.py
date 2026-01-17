@@ -1,9 +1,13 @@
+"""
+初始化gemini.Client 对象的工具函数
+包括读取api key 和 配置代理（默认7897端口，挂梯子使用）
+"""
 import os
 from google import genai
 
 def setup_client():
     """读取 Key 并配置代理，返回 Client 对象"""
-    # 1. 读取 API Key
+    # 1. 读取 API Key， 保存在 Key.txt 中
     base_dir = os.path.dirname(os.path.abspath(__file__))
     key_path = os.path.join(base_dir, "Key.txt")
     

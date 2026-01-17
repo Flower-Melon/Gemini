@@ -10,7 +10,7 @@ from data.prompts import task_prompt_json
 # 配置路径
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 IMAGE_DIR = os.path.join(BASE_DIR, "temp")      # 图片输入文件夹
-OUTPUT_DIR = os.path.join(BASE_DIR, "output")    # 结果输出文件夹
+OUTPUT_DIR = os.path.join(BASE_DIR, "out")    # 结果输出文件夹
 
 # 确保 output 文件夹存在
 os.makedirs(OUTPUT_DIR, exist_ok=True)
