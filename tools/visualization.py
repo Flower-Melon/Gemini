@@ -1,135 +1,94 @@
 """
-图像上可视化区域划分结果
-输入：包含区域划分数据的字符串，图像路径
-输出：保存带有区域划分可视化结果的图像文件
+可视化分割结果
+将分割结果绘制在图像上，并保存可视化结果。
+输入：分割结果字符串，图像路径（可选）
 """
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
+import json
+import ast
+import os
 import numpy as np
-from PIL import Image
-import ast
-import platform
-import os
-
-import ast
-import platform
-import os
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from PIL import Image
-import numpy as np
 
 def visualize_segmentation_on_image(data_str, image_path=None):
+    # --- 1. 解析数据 ---
     try:
-        zones = ast.literal_eval(data_str)
-    except Exception as e:
-        print(f"数据解析错误: {e}")
-        return
-
-    system_name = platform.system()
-    if system_name == "Windows":
-        plt.rcParams['font.sans-serif'] = ['SimHei']
-    elif system_name == "Darwin":
-        plt.rcParams['font.sans-serif'] = ['Arial Unicode MS']
-    else:
-        plt.rcParams['font.sans-serif'] = ['WenQuanYi Micro Hei']
-    plt.rcParams['axes.unicode_minus'] = False
-
-    # 加载图像
-    if image_path and os.path.exists(image_path):
+        # 直接解析为 zones 列表，不再进行字典/列表格式判断
+        zones = json.loads(data_str)
+    except:
         try:
-            img = Image.open(image_path)
-            img_arr = np.array(img)
-            h, w = img_arr.shape[:2]
-            print(f"成功加载图像: {image_path}, 尺寸: {w}x{h}")
-        except Exception as e:
-            print(f"加载图像失败: {e}")
+            zones = ast.literal_eval(data_str)
+        except:
             return
-    else:
-        print(f"未找到图像或路径为空: {image_path}，使用空白底图。")
-        h, w = 1080, 1920
-        img_arr = np.ones((h, w, 3), dtype=np.uint8) * 240 
 
-    # 设置绘图
+    # --- 2. 加载图像  ---
+    try:
+        if image_path and os.path.exists(image_path):
+            img_arr = np.array(Image.open(image_path))
+        else:
+            raise Exception
+    except:
+        img_arr = np.ones((1080, 1920, 3), dtype=np.uint8) * 240
+    
+    h, w = img_arr.shape[:2]
+
+    # --- 3. 核心绘图 ---
     fig, ax = plt.subplots(figsize=(12, 10))
     ax.imshow(img_arr)
     
-    # 颜色映射
-    color_map = {
-        '森林': '#228B22',   
-        '水面': '#1E90FF',   
-        '陆地': '#D2691E',   
-        'default': '#FFD700' 
-    }
+    risk_colors = {'High': '#FF4500', 'Medium': '#FFA500', 'Low': '#FFD700', 'default': '#808080'}
+    
+    # 收集图例句柄
+    legend_map = {}
 
-    # 遍历区域并绘制
-    for zone in zones:
-        coords_norm = zone['coordinates']
-        z_type = zone.get('type', 'default')
-        z_name = zone.get('name', 'Unknown')
-        
-        # 坐标转换
-        pixel_coords = [(x * w, y * h) for x, y in coords_norm]
-        
-        color = color_map.get(z_type, color_map['default'])
-        
-        # 绘制多边形
-        poly = patches.Polygon(
-            pixel_coords, 
-            closed=True, 
-            linewidth=2, 
-            edgecolor=color, 
-            facecolor=color, 
-            alpha=0.4,
-            label=f"{z_name} ({z_type})"
-        )
-        ax.add_patch(poly)
-        
-        # 计算中心点
-        poly_arr = np.array(pixel_coords)
-        center_x = np.mean(poly_arr[:, 0])
-        center_y = np.mean(poly_arr[:, 1])
-        
-        # 添加文字标签
-        ax.text(
-            center_x, center_y, 
-            z_name, 
-            color='white', 
-            fontsize=9, 
-            fontweight='bold',
-            ha='center', 
-            va='center', 
-            bbox=dict(facecolor='black', alpha=0.6, edgecolor='none', pad=2)
-        )
+    # 注意：此时 zones 必须是一个列表，如果是字典会导致后续报错
+    if isinstance(zones, list):
+        for zone in zones:
+            risk = zone.get('risk_level', 'default')
+            color = risk_colors.get(risk, risk_colors['default'])
+            
+            # 绘制区域
+            if 'coordinates' in zone:
+                pts = np.array([(x * w, y * h) for x, y in zone['coordinates']])
+                poly = patches.Polygon(pts, closed=True, linewidth=2, edgecolor=color, facecolor=color, alpha=0.3)
+                ax.add_patch(poly)
+                legend_map[risk] = poly
+                
+                # 绘制标签
+                if len(pts) > 0:
+                    cx, cy = pts[:, 0].mean(), pts[:, 1].mean()
+                    ax.text(cx, cy, f"{zone.get('id', '')}\n{risk}", color='white', fontsize=8, fontweight='bold',
+                            ha='center', va='center', bbox=dict(facecolor=color, alpha=0.8, edgecolor='none', pad=1))
 
-    ax.set_title(f"区域划分结果 (Source: {os.path.basename(image_path) if image_path else 'Blank'})")
+            # 绘制火点
+            if 'fire_points' in zone and zone['fire_points']:
+                fps = np.array([(x * w, y * h) for x, y in zone['fire_points']])
+                sc = ax.scatter(fps[:, 0], fps[:, 1], c='red', marker='x', s=80, linewidths=2, zorder=10)
+                legend_map['Fire Point'] = sc
+
+    # --- 4. 装饰与保存 ---
     ax.axis('off')
+    ax.set_title(f"Fire Risk Analysis: {os.path.basename(image_path) if image_path else 'Generated'}")
+    if legend_map:
+        ax.legend(legend_map.values(), legend_map.keys(), loc='upper right', framealpha=0.9)
     
-    # 图例去重
-    handles, labels = plt.gca().get_legend_handles_labels()
-    by_label = dict(zip(labels, handles))
-    ax.legend(by_label.values(), by_label.keys(), loc='upper right', framealpha=0.8)
-
-    plt.tight_layout()
-
+    save_dir = os.path.join(os.path.dirname(image_path) if image_path else '.', "output")
+    os.makedirs(save_dir, exist_ok=True)
+    save_path = os.path.join(save_dir, f"{os.path.splitext(os.path.basename(image_path) if image_path else 'result')[0]}_visualized.png")
     
-    if image_path:
-        # 获取原图所在目录
-        dir_name = os.path.join(os.path.dirname(image_path), "output")
-        os.makedirs(dir_name, exist_ok=True)
-        # 获取文件名（不带后缀）
-        base_name = os.path.splitext(os.path.basename(image_path))[0]
-        # 构建新的保存路径 (例如: 原名_visualized.png)
-        save_name = f"{base_name}_visualized.png"
-        save_path = os.path.join(dir_name, save_name)
-    else:
-        # 如果没有原图路径，保存到当前工作目录
-        save_path = "segmentation_visualized_blank.png"
+    plt.savefig(save_path, dpi=300, bbox_inches='tight')
+    plt.close()
 
-    try:
-        # bbox_inches='tight' 可以去除周围多余的白边
-        plt.savefig(save_path, dpi=300, bbox_inches='tight')
-    except Exception as e:
-        print(f"保存图片失败: {e}")
-
-    # plt.show()
+if __name__ == '__main__':
+    
+    json_path = "out/zones_data.json"
+    image_dir = "temp"
+    
+    with open(json_path, 'r', encoding='utf-8') as f:
+        all_zones_data = json.load(f)
+    
+    for file_name, zones in all_zones_data.items():
+        image_path = os.path.join(image_dir, file_name)
+        visualize_segmentation_on_image(str(zones), image_path)
+        
