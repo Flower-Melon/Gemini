@@ -89,8 +89,17 @@ def main():
             mission_results[file_name] = None
 
     # 5. 保存最终结果
+    formatted_results = {}
+    for key, value in mission_results.items():
+        if isinstance(value, str):
+            # 去掉可能存在的空行，并按换行符分割
+            lines = [line for line in value.split('\n') if line.strip() != '']
+            formatted_results[key] = lines
+        else:
+            formatted_results[key] = value
+
     with open(OUTPUT_CODE_JSON, 'w', encoding='utf-8') as f:
-        json.dump(mission_results, f, ensure_ascii=False, indent=4)
+        json.dump(formatted_results, f, ensure_ascii=False, indent=4)
 
     print(f"\n💾 [Step 2 完成] 任务代码已保存至: {OUTPUT_CODE_JSON}")
 
