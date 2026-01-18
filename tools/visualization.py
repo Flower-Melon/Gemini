@@ -42,7 +42,6 @@ def visualize_segmentation_on_image(data_str, image_path=None):
     # 收集图例句柄
     legend_map = {}
 
-    # 注意：此时 zones 必须是一个列表，如果是字典会导致后续报错
     if isinstance(zones, list):
         for zone in zones:
             risk = zone.get('risk_level', 'default')
