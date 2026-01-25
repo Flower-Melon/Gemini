@@ -5,7 +5,7 @@ from google.genai import types
 
 from tools.utils import setup_client
 from tools.visualization import visualize_segmentation_on_image
-from data.prompts import task_prompt_json
+from data.prompts import system_task_prompt_json, user_task_prompt_json
 
 # 配置路径
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -26,7 +26,11 @@ class VisionAnalyzer:
         """
         self.client = client
         # 设置生成配置，温度设为0以保证JSON格式稳定
-        self.config = types.GenerateContentConfig(temperature=0.0)
+        self.config = types.GenerateContentConfig(
+            system_instruction=system_task_prompt_json,
+            response_mime_type="application/json",
+            temperature=0.0
+        )
 
     def analyze_scene(self, image_path):
         """
@@ -41,7 +45,7 @@ class VisionAnalyzer:
             # 调用大模型
             response = self.client.models.generate_content(
                 model="gemini-3-pro-preview",
-                contents=[my_file, task_prompt_json],
+                contents=[user_task_prompt_json,my_file],
                 config=self.config
             )
             
